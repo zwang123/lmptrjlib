@@ -66,6 +66,8 @@
 
 # TODO once the setter of a derived class is called, 
 #      the attributes in the base class and the derived class are independent
+### source https://stackoverflow.com/questions/3203286/how-to-create-a-read-only-class-property-in-python/35640842#35640842
+### Mikhail Gerasimov and Michael Reinhardt
 class classproperty:
     """
     Same as property(), but passes obj.__class__ instead of obj to fget/fset/fdel.

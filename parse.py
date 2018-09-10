@@ -18,17 +18,21 @@ class LMPtrj(object):
     parse(trjname) : construct the trj, called by the class constructor
     """
     def __init__(self, trjname=None):
+        self.clear()
         self.parse(trjname)
 
     #@staticmethod
     #def __foo(self):
     #    pass
 
+    def clear(self):
+        self.__trj = dict()
+
 
     def parse(self, trjname):
         #print(self.__getattribute__("__foo"))
         #self._parse_item("dfasd")
-        self.__trj = dict()
+        #self.__trj = dict()
 
         if trjname is None:
             return self
