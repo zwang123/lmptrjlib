@@ -1,4 +1,5 @@
 from classproperty import classproperty, classproperty_support
+from collections import OrderedDict
 
 @classproperty_support
 class LMPtrj(object):
@@ -15,7 +16,7 @@ class LMPtrj(object):
     trj     : a dictionary, key = timestep, value = dictionary
 
     {timestep : {valsection  : value, ...,
-                 dictsection : [{ attr: value}, ...], ...}, ...}
+                 dictsection : (args, [{ attr: value}, ...]), ...}, ...}
 
     if two sections have the same timestep, the latter one will overwrite 
     the former one
@@ -27,7 +28,7 @@ class LMPtrj(object):
 ########################## public methods ##########################
 
     def clear(self):
-        self.__trj = dict()
+        self.__trj = OrderedDict()
 
     def parse(self, trjname):
         if trjname is None:
@@ -53,12 +54,32 @@ class LMPtrj(object):
 
             if section == "timestep":
                 timestep = section_value
-                self.__trj[timestep] = dict()
+                self.__trj[timestep] = OrderedDict()
 
             self.__set_section_value(timestep, section, section_value)
 
         return self
 
+    def to_file(self, filename=None):
+#    {timestep : {valsection  : value, ...,
+#                 dictsection : [{ attr: value}, ...], ...}, ...}
+        data = ""
+        for timestep, frame in self.trj.items():
+            for section, value in frame.items():
+                try:
+                    args, sectionlist = value
+                except TypeError:
+                    args = []
+                    sectionlist = [{None: value}]
+                data += "ITEM: {:s}\n".format(' '.join(
+                    [self.__valid_keys_rev[section]] + args))
+                for line in sectionlist:
+                    data += " ".join([str(x) for x in line.values()]) + "\n"
+        if filename:
+            with open(filename, "w") as f:
+                f.write(data)
+        return data
+                
 ########################## public members ##########################
 
     @property
@@ -83,9 +104,9 @@ class LMPtrj(object):
     def _parse_atoms(self, args, timestep, data, start):
         natoms = self.trj[timestep]["natoms"]
         assert(len(data) >= start+natoms)
-        return self._parse_formatted_section(args, 
+        return (args, self._parse_formatted_section(args, 
                 [self.data_types[arg] for arg in args],
-                data[start:start+natoms]), natoms
+                data[start:start+natoms])), natoms
     
     @classmethod
     def _parse_item(cls, line):
@@ -103,13 +124,13 @@ class LMPtrj(object):
             assert(arg == "pp") 
         ndim = len(args)
         assert(len(data) >= start+ndim)
-        return cls._parse_formatted_section(["lbound", "hbound"], 
+        return (args, cls._parse_formatted_section(["lbound", "hbound"], 
                 [float, float],
-                data[start:start+ndim]), ndim
+                data[start:start+ndim])), ndim
 
     @staticmethod
     def _parse_natoms(args, timestep, data, start):
-        """ Must not use timestep in this function """
+        """ Must not use timestep, which is uninitialized, in this function """
         if args:
             raise RuntimeError("Non empty args")
         return int(data[start]), 1
@@ -120,7 +141,7 @@ class LMPtrj(object):
     def _parse_formatted_section(args, types, data):
         rtn = []
         for line in data:
-            elem = dict()
+            elem = OrderedDict()
             for attr, type_, val in zip(args, types, line.split()):
                 elem[attr] = type_(val)
             rtn.append(elem)
@@ -129,32 +150,37 @@ class LMPtrj(object):
 ########################## private static members ##########################
 
     # could be overridden by derived class
-    __valid_keys = {
-            "TIMESTEP" : "timestep", 
-            "NUMBER OF ATOMS": "natoms", 
-            "BOX BOUNDS" : "bounds", 
-            "ATOMS" : "atoms",
-            }
+    __valid_keys = OrderedDict([
+            ("TIMESTEP" , "timestep"), 
+            ("NUMBER OF ATOMS", "natoms"), 
+            ("BOX BOUNDS" , "bounds"), 
+            ("ATOMS" , "atoms"),
+            ])
+    __valid_keys_rev = OrderedDict([
+        (v, k) for k, v in __valid_keys.items()
+            ])
     __valid_sections = __valid_keys.keys()
-    __data_types = {
-            "id" : int,
-            "mol" : int,
-            "type" : int,
-            "q" : float,
-            "x" : float,
-            "y" : float,
-            "z" : float,
-            "vx" : float,
-            "vy" : float,
-            "vz" : float,
-            "fx" : float,
-            "fy" : float,
-            "fz" : float,
-            }
+    __data_types = OrderedDict([
+            ("id" , int),
+            ("mol" , int),
+            ("type" , int),
+            ("q" , float),
+            ("x" , float),
+            ("y" , float),
+            ("z" , float),
+            ("vx" , float),
+            ("vy" , float),
+            ("vz" , float),
+            ("fx" , float),
+            ("fy" , float),
+            ("fz" , float),
+            ])
 
 if __name__ == "__main__":
     foo = LMPtrj()
     bar = LMPtrj("test/test.lammpstrj")
     foo.parse("test/test.lammpstrj")
+    foo.to_file("test/rtn.lammpstrj")
     print(foo.trj)
+    print(foo.valid_sections)
     assert(foo.trj == bar.trj)
