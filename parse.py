@@ -10,6 +10,9 @@ class LMPtrj(object):
     attributes:
     clear() : clear the trj, called by the class constructor
     parse(trjname) : construct the trj, called by the class constructor
+    to_file() : write trj to a file
+    sort() : sort the atoms section
+    sort_id() : sort the atoms section based on id
 
     valid_sections: the keys to the trj.values()
     data_types: atoms section, key to type dictionary
@@ -61,8 +64,6 @@ class LMPtrj(object):
         return self
 
     def to_file(self, filename=None):
-#    {timestep : {valsection  : value, ...,
-#                 dictsection : [{ attr: value}, ...], ...}, ...}
         data = ""
         for timestep, frame in self.trj.items():
             for section, value in frame.items():
@@ -79,6 +80,17 @@ class LMPtrj(object):
             with open(filename, "w") as f:
                 f.write(data)
         return data
+
+    def sort(self, key):
+        for frame in self.trj.values():
+            frame["atoms"][1].sort(key=key)
+        return self
+
+    def sort_id(self):
+        return self.sort(lambda x : x["id"])
+
+    def sort_mol_type_id(self):
+        return self.sort(lambda x : [x["mol"], x["type"], x["id"]])
                 
 ########################## public members ##########################
 
@@ -180,7 +192,9 @@ if __name__ == "__main__":
     foo = LMPtrj()
     bar = LMPtrj("test/test.lammpstrj")
     foo.parse("test/test.lammpstrj")
-    foo.to_file("test/rtn.lammpstrj")
-    print(foo.trj)
-    print(foo.valid_sections)
+    foo.to_file("result/rtn.lammpstrj")
     assert(foo.trj == bar.trj)
+    foo.sort_id().to_file("result/sorted_id.lammpstrj")
+    foo.sort_mol_type_id().to_file("result/sorted_moltypeid.lammpstrj")
+    #print(foo.trj)
+    #print(foo.valid_sections)
