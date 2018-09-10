@@ -1,4 +1,4 @@
-from classproperty import classproperty, classproperty_support
+from lmptrjlib.classproperty import classproperty, classproperty_support
 from collections import OrderedDict
 
 @classproperty_support
@@ -11,8 +11,10 @@ class LMPtrj(object):
     clear() : clear the trj, called by the class constructor
     parse(trjname) : construct the trj, called by the class constructor
     to_file() : write trj to a file
-    sort() : sort the atoms section
+    sort(key) : sort the atoms section
     sort_id() : sort the atoms section based on id
+    sort_mol_type_id() : sort the atoms section based on mol, type, id
+    subtrj(timesteps) : generate a copy of sub-trajectory
 
     valid_sections: the keys to the trj.values()
     data_types: atoms section, key to type dictionary
@@ -32,6 +34,7 @@ class LMPtrj(object):
 
     def clear(self):
         self.__trj = OrderedDict()
+        return self
 
     def parse(self, trjname):
         if trjname is None:
@@ -91,6 +94,17 @@ class LMPtrj(object):
 
     def sort_mol_type_id(self):
         return self.sort(lambda x : [x["mol"], x["type"], x["id"]])
+
+    def subtrj(self, timesteps):
+        try:
+            timesteps[0]
+        except:
+            timesteps = [timesteps]
+        rtn = LMPtrj()
+        timesteps.sort()
+        subtrj = OrderedDict((t, self.trj[t]) for t in timesteps)
+        rtn.__set_trj(subtrj)
+        return rtn
                 
 ########################## public members ##########################
 
@@ -110,6 +124,9 @@ class LMPtrj(object):
 
     def __set_section_value(self, timestep, section, value):
         self.__trj[timestep][section] = value
+
+    def __set_trj(self, trj):
+        self.__trj = trj
 
 ########################## protected methods ##########################
 
@@ -196,5 +213,6 @@ if __name__ == "__main__":
     assert(foo.trj == bar.trj)
     foo.sort_id().to_file("result/sorted_id.lammpstrj")
     foo.sort_mol_type_id().to_file("result/sorted_moltypeid.lammpstrj")
+    foo.subtrj(0).to_file("result/frame0.lammpstrj")
     #print(foo.trj)
     #print(foo.valid_sections)
