@@ -1,4 +1,4 @@
-from lmptrjlib.classproperty import classproperty, classproperty_support
+from classproperty import classproperty, classproperty_support
 from collections import OrderedDict
 
 @classproperty_support
