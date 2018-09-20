@@ -53,8 +53,7 @@ class LMPtrj(object):
                 raise RuntimeError("Section not starting with ITEM")
 
             section, args = self._parse_item(line[5:].strip())
-            section_value, lines_parsed = self.__getattribute__( 
-                    "_parse_" + section)\
+            section_value, lines_parsed = getattr(self, "_parse_" + section)\
                     (args, timestep, data, line_idx + 1)
             next_item_idx = line_idx + lines_parsed + 1
 
